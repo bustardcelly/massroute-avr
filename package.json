@@ -1,0 +1,24 @@
+{
+  "name": "massroute-avr",
+  "version": "0.1.0",
+  "author": {
+    "name": "Todd Anderson",
+    "email": "bustardcelly@gmail.com",
+    "url": "http://custardbelly.com/blog"
+  },
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "engines": [
+    "node >=0.8.6"
+  ],
+  "dependencies": {},
+  "devDependencies": {
+    "duino": "0.0.7",
+    "optimist": "~0.3.5",
+    "express": "~3.1.0",
+    "request": "~2.16.2"
+  },
+  "private": "true"
+}
