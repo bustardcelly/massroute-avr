@@ -6,7 +6,8 @@ var args = require('optimist').argv,
     board = new arduino.Board( {
       debug: true
     }),
-    LCD = require(path.resolve(process.cwd(), '../script/lcd')),
+    LCD = require(path.resolve(process.cwd(), 'script/lcd')),
+    ShiftLed = require(path.resolve(process.cwd(), 'script/shiftLed')),
     express = require('express'),
     app = express(),
     port = 3003,
@@ -14,35 +15,70 @@ var args = require('optimist').argv,
       board: board,
       pin: 4
     }),
-    pinIndex = 13,
     url = 'http://68.169.43.76:3001/routes/39/destinations/39_1_var1/stops/{0}',
     pingCount = 0,
-    // stopIds = ['1162', '1164', '11164', '1128', '1129', '1130'],
-    stopIds = ['1938', '1128', '1129'],
-    pinMap = {},
+    stopIds = ['1938', '1128', '1129', '1162', '1164', '11164'],
+    pinMap = {
+      '1938': {
+        led: new ShiftLed({
+          board: board,
+          redPin: 8,
+          greenPin: 9
+        })
+      },
+      '1128': {
+        led: new ShiftLed({
+          board: board,
+          redPin: 10,
+          greenPin: 11
+        })
+      },
+      '1129': {
+        led: new ShiftLed({
+          board: board,
+          redPin: 12,
+          greenPin: 13
+        })
+      },
+      '1162': {
+        led: new ShiftLed({
+          board: board,
+          redPin: 0,
+          greenPin: 1
+        })
+      }, 
+      '1164': {
+        led: new ShiftLed({
+          board: board,
+          redPin: 2,
+          greenPin: 3
+        })
+      },
+      '11164': {
+        led: new ShiftLed({
+          board: board,
+          redPin: 4,
+          greenPin: 5
+        })
+      }
+    },
     minApproach = 5 * 60, // 3 minutes
-    minArrival = 2 * 60, // 2 minutes
-    createLed = function() {
-      return new arduino.Led({
-              board: board,
-              pin: pinIndex--
-            });
-    };
+    minArrival = 2 * 60;
 
 // outbound
-// 13, 12
+// 9, 10
 // <stop tag="1162" title="Centre St @ Lakeville Rd" lat="42.3158699" lon="-71.1141299" stopId="01162"/>
-// 11, 10
+// 11, 12
 // <stop tag="1164" title="Centre St @ Myrtle St" lat="42.31331" lon="-71.1141599" stopId="01164"/>
-// 9, 8
+// 13, 14
 // <stop tag="11164" title="Centre St @ Burroughs St" lat="42.3114699" lon="-71.1144999" stopId="11164"/>
 // 
 // inbound
-// 13, 12
+// 1, 2
 // <stop tag="1938" title="South St @ Carolina Ave" lat="42.3078" lon="-71.11546" stopId="01938"/>
-// 11, 10
+// 3, 4
 // <stop tag="1128" title="South St @ Sedgwick St" lat="42.3085899" lon="-71.11549" stopId="01128"/>
-// 9, 8
+// 5, 6
 // <stop tag="1129" title="Centre St @ Seaverns Ave" lat="42.3121999" lon="-71.11414" stopId="01129"/>
 // 
 // prediction
@@ -55,17 +91,8 @@ if(args) {
   }
 }
 
-// Bi-color 3-lead leds.
-var i = 0, length = stopIds.length;
-for(i; i < length; i++) {
-  pinMap[stopIds[i]] = {
-    red: createLed(),
-    green: createLed()
-  };
-}
-
 function getPredictions() {
-  var stopIndex = (pingCount++ % stopIds.length),
+  var stopIndex = (pingCount % stopIds.length),
       stopId = stopIds[stopIndex];
   console.log('request: ' + url.replace('{0}', stopId));
   request({
@@ -75,7 +102,7 @@ function getPredictions() {
     var predictions,
         prediction,
         seconds,
-        redPin, greenPin;
+        led;
 
     if(err) {
       // TODO: Send error message.
@@ -88,30 +115,33 @@ function getPredictions() {
         seconds = prediction.seconds ? parseInt(prediction.seconds, 10) : -1;
         if(seconds > -1) {
           board.log('stop ' + stopId + ': ' + seconds);
-          redPin = pinMap[stopId].red;
-          greenPin = pinMap[stopId].green;
+          led = pinMap[stopId].led;
           if(seconds <= minArrival) {
+            board.log('on'.red);
             // set pin HIGH on red lead
-            redPin.on();
-            greenPin.off();
             // set pin LOW on green lead
+            led.red();
           }
           else if(seconds <= minApproach) {
+            board.log('on'.green);
             // set pin LOW on red lead
-            redPin.off();
             // set pin HIGH on green lead
-            greenPin.on();
+            led.green();
           }
           else {
+            board.log('off');
             // set pin LOW on red lead
-            redPin.off();
             // set pin LOW on green lead
-            greenPin.off();
+            led.off();
           }
         }
       }
     }
   });
+
+  if(++pingCount == stopIds.length) {
+    pingCount = 0;
+  }
 }
 
 app.use(express.static(__dirname));
