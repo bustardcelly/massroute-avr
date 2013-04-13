@@ -17,7 +17,8 @@ var args = require('optimist').argv,
     }),
     url = 'http://68.169.43.76:3001/routes/39/destinations/39_1_var1/stops/{0}',
     pingCount = 0,
-    stopIds = ['1938', '1128', '1129', '1162', '1164', '11164'],
+    // in, out final stops hit up first to get predictions.
+    stopIds = ['1129', '11164', '1938', '1128', '1162', '1164'],
     pinMap = {
       '1938': {
         led: new ShiftLed({
@@ -38,7 +39,8 @@ var args = require('optimist').argv,
           board: board,
           redPin: 12,
           greenPin: 13
-        })
+        }),
+        lcdLine: 0
       },
       '1162': {
         led: new ShiftLed({
@@ -59,7 +61,8 @@ var args = require('optimist').argv,
           board: board,
           redPin: 4,
           greenPin: 5
-        })
+        }),
+        lcdLine: 1
       }
     },
     minApproach = 5 * 60, // 3 minutes
@@ -102,6 +105,7 @@ function getPredictions() {
     var predictions,
         prediction,
         seconds,
+        pin,
         led;
 
     if(err) {
@@ -115,7 +119,8 @@ function getPredictions() {
         seconds = prediction.seconds ? parseInt(prediction.seconds, 10) : -1;
         if(seconds > -1) {
           board.log('stop ' + stopId + ': ' + seconds);
-          led = pinMap[stopId].led;
+          pin = pinMap[stopId];
+          led = pin.led;
           if(seconds <= minArrival) {
             board.log('on'.red);
             // set pin HIGH on red lead
@@ -134,7 +139,11 @@ function getPredictions() {
             // set pin LOW on green lead
             led.off();
           }
+          if(pin.hasOwnProperty('lcdLine')) {
+            lcd.writeLine(pin.lcdLine, seconds);
+          }
         }
+        // TODO: handle unavailable for lcdLine and no time data.
       }
     }
   });

@@ -18,7 +18,8 @@
     "duino": "0.0.7",
     "optimist": "~0.3.5",
     "express": "~3.1.0",
-    "request": "~2.16.2"
+    "request": "~2.16.2",
+    "cron": "~1.0.1"
   },
   "private": "true"
 }

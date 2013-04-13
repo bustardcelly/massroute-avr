@@ -47,7 +47,6 @@ void loop() {
     }
     else messageBuffer[index++] = x;
   }
-//  blinkDisplay();
 }
 
 /*

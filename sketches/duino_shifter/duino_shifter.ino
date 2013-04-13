@@ -1,8 +1,9 @@
 /**
 * Modification of duino https://github.com/ecto/duino
 * to support 16x2 Serial LCD Display.
+* 
+* Shifter library // http://bildr.org/2011/08/74hc595-breakout-arduino/
 */
-#include <Servo.h>
 #include <SoftwareSerial.h>
 #include <serLCD.h>
 #include <Shifter.h>
@@ -21,13 +22,19 @@ char val[3];
 // see above equation
 char aux[33];
 bool debug = false;
-Servo servo;
+
 // lcd
 int lcdPin = 4;
 serLCD lcd = serLCD(lcdPin);
 char *lastMessage;
 int blinkCount;
 int blinkLimit = 3;
+// lcd msg formatting
+int divisor = 60;
+char *in = "In:";
+char *out = "Out:";
+String msg1 = "In: N/A";
+String msg2 = "Out: N/A";
 
 // Shift Register
 int dataPin = 11;
@@ -57,7 +64,7 @@ void loop() {
     }
     else messageBuffer[index++] = x;
   }
-  blinkDisplay();
+  // blinkDisplay();
 }
 
 /*
@@ -92,11 +99,8 @@ void process() {
     shiftPin(pin, val);
   }
   else if (strcmp(cmd, "97") == 0) {
-    handleLCD(aux);
-  } 
-  else if (strcmp(cmd, "98") == 0) {
-    handleServo(pin, val, aux);
-  } 
+    handleLCD(val, aux);
+  }
   else if (strcmp(cmd, "99") == 0) {
     toggleDebug(val);
   }
@@ -162,28 +166,6 @@ void dr(char *pin, char *val) {
   Serial.println(m);
 }
 
-/*
- * Handle Servo commands
- * attach, detach, write, read, writeMicroseconds, attached
- */
-void handleServo(char *pin, char *val, char *aux) {
-  if (debug) Serial.println("ss");
-  int p = atoi(pin);
-  Serial.println("got signal");
-  if (strcmp(val, "00") == 0) {
-    servo.detach();
-  } 
-  else if (strcmp(val, "01") == 0) {
-    servo.attach(p);
-    Serial.println("attached");
-  } 
-  else if (strcmp(val, "02") == 0) {
-    Serial.println("writing to servo");
-    Serial.println(atoi(aux));
-    servo.write(atoi(aux));
-  }
-}
-
 void shiftPin(char *pin, char *val) {
   int p = atoi(pin);
    shifter.setPin(p, (strcmp(val, "00") == 0) ? LOW : HIGH);
@@ -193,18 +175,45 @@ void shiftPin(char *pin, char *val) {
 /*
 * Handle Serial LCD commands
 */
-void handleLCD(char *val) {
+void handleLCD(char *val, char *aux) {
   if (debug) Serial.println(val);
   blinkCount = 0;
-  lastMessage = val;
+  int line = (strcmp(val, "00") == 0) ? 0 : 1;
   lcd.clear();
-  lcd.print(val);
+  if(line == 0) {
+    msg1 = format((line==0) ? in : out, aux);
+  }
+  else {
+    msg2 = format((line==0) ? in : out, aux);
+  }
+  lcd.selectLine(1);
+  lcd.print(msg1);
+  lcd.selectLine(2);
+  lcd.print(msg2);
   delay(100);
-  dw("13", "01");
-  delay(1000);
-  dw("13", "00");
 }
 
+String format(char *dir, char *seconds) {
+  int numSeconds = atoi(seconds);
+  int dividend = numSeconds % divisor;
+  int minutes;
+  char time[16];
+  if(numSeconds < 60) {
+    sprintf(time, "%s %d seconds", dir, numSeconds);
+  }
+  else {
+    minutes = numSeconds / divisor;
+    if(dividend == 0) {
+      sprintf(time, "%s %d minutes", dir, minutes);
+    }
+    else {
+      sprintf(time, "%s %d m, %d s", dir, minutes, dividend);
+    }
+  }
+  return time;
+}
+
+/*
 void blinkDisplay() {
   // blink
   if(strlen(lastMessage) > 0 && (blinkCount++ < blinkLimit)) {
@@ -228,4 +237,5 @@ void removeFirst (char *s) {
     *s = *(s+1);
     removeFirst (s+1);
 }
+*/
 

@@ -6,7 +6,7 @@ var args = require('optimist').argv,
     board = new arduino.Board( {
       debug: true
     }),
-    LCD = require(path.resolve(process.cwd(), '../script/lcd')),
+    LCD = require(path.resolve(process.cwd(), 'script/lcd')),
     express = require('express'),
     app = express(),
     port = 3003,

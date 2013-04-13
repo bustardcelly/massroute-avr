@@ -6,9 +6,13 @@ var LCD = (function(options) {
 });
 
 LCD.prototype.write = function(word) {
-  var nmPin = this.board.normalizePin(this.pin);
-  this.board.write('97' + nmPin + '00' + word);
+  this.writeLine(0, word);
 };
+
+LCD.prototype.writeLine = function(lineIndex, word) {
+  var nmPin = this.board.normalizePin(this.pin);
+  this.board.write('97' + nmPin + ('0'+lineIndex.toString()) + word);
+}
 
 LCD.prototype.normalizeChar = function(char) {
   return char.charCodeAt(0).toString(16).toUpperCase();
